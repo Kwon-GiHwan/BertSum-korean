@@ -6,6 +6,8 @@ from tqdm import tqdm
 
 import numpy as np
 
+import math
+
 class Trainer(nn.Module):
     def __init__(self, model, device, dset_train, dset_test, arg_train = None):
         super(Trainer, self).__init__()
@@ -85,8 +87,6 @@ class Trainer(nn.Module):
         print(
             "train loop: loss {}  acc {}".format(loss.data.cpu().numpy(), train_acc / len(self.dset_train)))
 
-
-
     def test_loop(self):
 
         self.model.eval()
@@ -113,3 +113,56 @@ class Trainer(nn.Module):
 
             print(
                 "test loop: loss {}  acc {}".format( test_loss.data.cpu().numpy(), test_acc / len(self.dset_test)))
+
+class Validator(nn.Module):
+    def __init__(self, model, device, tokenizer,dset_summ, arg_train = None):
+        super(Trainer, self).__init__()
+
+        self.batch_size = arg_train.batch_size
+
+        self.dset_summ = dset_summ
+
+        self.device = device
+        self.model = model
+        self.tokenizer = tokenizer
+    def summarize_task(self):
+
+        self.model.eval()
+        with torch.no_grad():
+            pred_atcl = []
+
+            for batch_id, (input_idx, attention_mask, _cls_idx, _cls_mask) in enumerate(tqdm(self.dset_summ)):
+                input_idx = input_idx.to(self.device)
+                attention_mask = attention_mask.to(self.device)
+                cls_idx = _cls_idx.to(self.device)
+                cls_mask = _cls_mask.to(self.device)
+
+                sent_score, cls_mask = self.model(input_idx, attention_mask, cls_idx, cls_mask)
+
+                sent_score = sent_score + cls_mask.float()
+                sent_score = sent_score.cpu().data.numpy()
+
+                slct_idx = np.argsort(-sent_score, 1)
+
+                for idx, itm in enumerate(slct_idx):
+                    pred_stnc = []
+                    src_stnc = self.tokenizer.decode(input_idx[idx]).split('[SEP]')
+
+                    for jtm in itm[:len(src_stnc)]:
+                        try:
+                            candid = src_stnc[jtm]
+                            pred_stnc.append(candid)
+                        except:
+                            pass
+
+                    rel_len = math.ceil(len(src_stnc) * 0.3)
+
+                    pred_stnc = ''.join(pred_stnc[:rel_len])
+                    pred_stnc = pred_stnc.replace('[CLS]', '')
+                    pred_stnc = pred_stnc.replace('[SEP]', '')
+                    pred_stnc = pred_stnc.replace('[UNK]', '')
+                    pred_stnc = pred_stnc.replace('[PAD]', '')
+
+                    pred_atcl.append(pred_stnc)
+
+            return pred_atcl

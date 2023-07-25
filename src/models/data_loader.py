@@ -4,14 +4,13 @@ import numpy as np
 
 from tqdm import tqdm
 
-from kobert_transformers.tokenization_kobert import KoBertTokenizer
+
 
 class Processor():
-    def __init__(self, tokenizer_len):
+    def __init__(self, tokenizer, tokenizer_len):
 
         # self.tknzr = KoBertTokenizer.from_pretrained('skt/kobert-base-v1', sp_model_kwargs={'nbest_size': -1, 'alpha': 0.6, 'enable_sampling': True})
-        self.tokenizer = KoBertTokenizer.from_pretrained('monologg/kobert', sp_model_kwargs={'nbest_size': -1, 'alpha': 0.6,
-                                                                                         'enable_sampling': True})
+        self.tokenizer = tokenizer
 
         self.cls_token = self.tokenizer.convert_tokens_to_ids("[CLS]")
 
@@ -104,8 +103,8 @@ class Processor():
 
 
 class BERTDataset(Dataset):
-    def __init__(self, article, tagged_id, arg_train):
-        self.processor = Processor(arg_train.tokenizer_len)
+    def __init__(self, tokenizer, article, tagged_id, arg_train):
+        self.processor = Processor(tokenizer, arg_train.tokenizer_len)
         self.dset = self.processor.data_cls(article, tagged_id)
 
     def __getitem__(self, idx):

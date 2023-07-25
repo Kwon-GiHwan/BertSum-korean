@@ -8,6 +8,8 @@
 #pip install torch
 
 from models import data_loader, model_builder, trainer
+from kobert_transformers.tokenization_kobert import KoBertTokenizer
+
 from pre_process import data_parser
 import pandas as pd
 from sklearn.model_selection import train_test_split as tts
@@ -52,35 +54,50 @@ def add_argument(file_loc):
 
 
 if __name__ == '__main__':
-
-
     arg_train = add_argument()
-
-    df = pd.read_pickle(arg_train.dir_name + arg_train.train_file)
-    df = df[['atcl', 'tgid']].iloc[:100]
-
-    dset_train, dset_test = tts(df, test_size=0.1, random_state=42)
-
-    dset_train = data_loader.BERTDataset(dset_train, train=True)
-    dset_test = data_loader.BERTDataset(dset_test, train=True)
-
-    dset_train = torch.utils.data.DataLoader(dset_train, batch_size=arg_train.batch_size, num_workers=1)
-    dset_test = torch.utils.data.DataLoader(dset_test, batch_size=arg_train.batch_size, num_workers=1)
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     model = model_builder.Summarizer().to(device)
+    tokenizer = KoBertTokenizer.from_pretrained('monologg/kobert',
+                                                sp_model_kwargs={'nbest_size': -1, 'alpha': 0.6,
+                                                                 'enable_sampling': True})
 
-    trainer = trainer.Trainer(model, device, dset_train, dset_test, arg_train)
+    if(arg_train.mode == "train"):
+        epoch = arg_train.epoch
 
-    epoch = arg_train.epoch
+        df = pd.read_pickle(arg_train.dir_name + arg_train.train_file)
+        df = df[['atcl', 'tgid']].iloc[:100]
 
-    for e in range(epoch):
-        trainer.train()
-        trainer.test()
-        torch.save(model, arg_train.dir_name + arg_train.chk_point)
+        dset_train, dset_test = tts(df, test_size=0.1, random_state=42)
+
+        dset_train = data_loader.BERTDataset(tokenizer, dset_train, train=True)
+        dset_test = data_loader.BERTDataset(tokenizer, dset_test, train=True)
+
+        dset_train = torch.utils.data.DataLoader(dset_train, batch_size=arg_train.batch_size, num_workers=1)
+        dset_test = torch.utils.data.DataLoader(dset_test, batch_size=arg_train.batch_size, num_workers=1)
+
+        trainer = trainer.Trainer(model, device, dset_train, dset_test, arg_train)
+
+        for e in range(epoch):
+            trainer.train()
+            trainer.test()
+            torch.save(model, arg_train.dir_name + arg_train.chk_point)
+
+    elif(arg_train.mode == "summarization"):
+
+        df = pd.read_pickle(arg_train.dir_name + arg_train.train_file)
+        df = df[['atcl', 'tgid']].iloc[:100]
 
 
-    #use ext_sentence here
-    ext_sentence = ext_sentence.ExtSentence()
 
-    df_sm = ext_sentence.refine_text(df_sm, 'atcl')
+        dset_summ = data_loader.BERTDataset(tokenizer, df, train=True)
+        dset_summ = torch.utils.data.DataLoader(dset_summ, batch_size=arg_train.batch_size, num_workers=1)
+
+        trainer = trainer.Validator(model, device, tokenizer, dset_summ, arg_train)
+
+        ret = trainer.train()
+
+        df['summ'] = ret
+
+        pd.to_excel(arg_train.dir_name + 'result.xlsx')
+
