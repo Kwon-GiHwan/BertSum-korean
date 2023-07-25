@@ -2,8 +2,10 @@
 
         "dir_name" : "./",
         "chk_point" : "./",
+        "train_file" : "./",
+        "valid_file" : "./",
 
-        "tokenizer_len" : 512
+        "tokenizer_len" : 512,
 
         "encoder" : "rnn",
 

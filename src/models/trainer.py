@@ -115,10 +115,10 @@ class Trainer(nn.Module):
                 "test loop: loss {}  acc {}".format( test_loss.data.cpu().numpy(), test_acc / len(self.dset_test)))
 
 class Validator(nn.Module):
-    def __init__(self, model, device, tokenizer,dset_summ, arg_train = None):
+    def __init__(self, model, device, tokenizer,dset_summ, arg_valid = None):
         super(Trainer, self).__init__()
 
-        self.batch_size = arg_train.batch_size
+        self.batch_size = arg_valid.batch_size
 
         self.dset_summ = dset_summ
 

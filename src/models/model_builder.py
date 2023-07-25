@@ -38,7 +38,7 @@ class Classifier(nn.Module):
 class RNNEncoder(nn.Module):
 
     def __init__(self, bidirectional=True, num_layers=12, input_size=768,
-                 hidden_size=512, dropout=0.0):
+                 hidden_size=768, dropout=0.0):
         super(RNNEncoder, self).__init__()
 
         num_directions = 2 if bidirectional else 1
@@ -79,11 +79,14 @@ class Summarizer(nn.Module):
         super(Summarizer, self).__init__()
 
         self.bert = Bert(argument_train.drop_rate_bert)
-        self.encoder = RNNEncoder(bidirectional=True, num_layers=argument_train.num_layers,
-                                      input_size=argument_train.input_size, hidden_size=argument_train.hidden_size,
-                                      dropout=argument_train.drop_rate_encoder)
 
-        # self.encoder = Classifier(argument_train.input_size)
+        if(argument_train.encoder == "rnn"):
+            self.encoder = RNNEncoder(bidirectional=True, num_layers=argument_train.num_layers,
+                                          input_size=argument_train.input_size, hidden_size=argument_train.hidden_size,
+                                          dropout=argument_train.drop_rate_encoder)
+
+        elif(argument_train.encoder == "rnn"):
+            self.encoder = Classifier(argument_train.input_size)
 
     def forward(self, token_idx, attn_mask, cls_idx, cls_mask):
 
