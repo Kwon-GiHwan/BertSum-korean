@@ -1,0 +1,25 @@
+{
+
+        "dir_name" : "./",
+        "chk_point" : "./",
+
+        "tokenizer_len" : 512
+
+        "encoder" : "rnn",
+
+        "mode" : "train",
+
+        "input_size" : 768,
+        "hidden_size" : 768,
+        "num_layer" : 2,
+
+        "drop_rate_encoder" : 0.5,
+        "drop_rate_bert" : 0.5,
+
+        "batch_size" : 8,
+        "warmup_rate" : 1,
+        "epoch" : 20,
+        "grad_norm" : 1,
+        "learn_rate" : 1
+
+}
